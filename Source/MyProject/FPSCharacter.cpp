@@ -35,6 +35,7 @@ AFPSCharacter::AFPSCharacter()
 	FPSMesh->CastShadow = false;
 
 	GetMesh()->SetOwnerNoSee(true);
+	
 }
 
 // Called when the game starts or when spawned
@@ -46,6 +47,8 @@ void AFPSCharacter::BeginPlay()
 	GetMesh()->SetOwnerNoSee(true);
 	
 	UE_LOG(LogTemp, Warning, TEXT("This is major Tom from the character controller"));
+
+	SetActorLocation(StartPosition);
 }
 
 // Called every frame

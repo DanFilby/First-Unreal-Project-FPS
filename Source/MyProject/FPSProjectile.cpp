@@ -3,6 +3,9 @@
 
 #include "FPSProjectile.h"
 
+#include "BasicEnemy.h"
+
+
 // Sets default values
 AFPSProjectile::AFPSProjectile()
 {
@@ -14,14 +17,18 @@ AFPSProjectile::AFPSProjectile()
 		RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("ProjectileSceneComponent"));
 	}
 
-	//create sphere and make it root component
+	//Setup collisions
 	if (!CollisionComponent) {
 
 		CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionComponent"));
+		CollisionComponent->BodyInstance.SetCollisionProfileName(TEXT("Projectile"));
 		CollisionComponent->InitSphereRadius(15.0f);
 		RootComponent = CollisionComponent;
+
+		CollisionComponent->OnComponentHit.AddDynamic(this, &AFPSProjectile::OnHit);
 	}
 
+	//setup projectile movement behaviour
 	if (!ProjectileMovementComponent) {
 		//creates the component
 		ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovementComponent"));
@@ -38,6 +45,27 @@ AFPSProjectile::AFPSProjectile()
 		ProjectileMovementComponent->ProjectileGravityScale = 0.0f;
 	}
 
+	//setup bullet mesh
+	if (!ProjectileMesh) {
+		//adds mesh to bullet
+		ProjectileMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ProjectileMeshComponent"));
+		static ConstructorHelpers::FObjectFinder<UStaticMesh>Mesh(TEXT("'/Game/Models/Bullet/Sphere.Sphere'"));
+		if (Mesh.Succeeded()) {
+			ProjectileMesh->SetStaticMesh(Mesh.Object);
+		}
+	}
+
+	//Setup material 
+	static ConstructorHelpers::FObjectFinder<UMaterial>Material(TEXT("'/Game/Models/Bullet/BulletMat.BulletMat'"));
+	if (Material.Succeeded()) {
+		ProjectileMaterialInstance = UMaterialInstanceDynamic::Create(Material.Object, ProjectileMesh);
+
+		ProjectileMesh->SetMaterial(0, ProjectileMaterialInstance);
+		ProjectileMesh->SetRelativeScale3D(FVector(0.09f, 0.09f, 0.09f));
+		ProjectileMesh->SetupAttachment(RootComponent);
+	}
+	
+	InitialLifeSpan = 3.0f;
 
 }
 
@@ -52,6 +80,32 @@ void AFPSProjectile::BeginPlay()
 void AFPSProjectile::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+}
+
+void AFPSProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit)
+{
+	//UE_LOG(LogTemp, Warning, TEXT("This is Ziggy, we hit something boss"));
+
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("This is Ziggy, we hit something boss: %s"), *Hit.GetActor()->GetName()));
+
+	//hit an enemy
+	if (ABasicEnemy* enemy = Cast<ABasicEnemy>(Hit.GetActor())) {
+		GEngine->AddOnScreenDebugMessage(-1, 21.0f, FColor::Red, "Dealing with an ENEMY here");
+		enemy->EnemyTest();
+
+
+	}
+	
+
+	if (OtherActor != this && OtherComponent->IsSimulatingPhysics()) {
+		OtherComponent->AddImpulseAtLocation(ProjectileMovementComponent->Velocity, Hit.ImpactPoint);
+
+		UE_LOG(LogTemp, Warning, TEXT("This is Alien 16721, we hit a physics body"));
+
+
+	}
+	Destroy();
 
 }
 

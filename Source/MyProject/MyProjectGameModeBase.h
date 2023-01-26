@@ -16,4 +16,11 @@ class MYPROJECT_API AMyProjectGameModeBase : public AGameModeBase
 
 	virtual void StartPlay() override;
 
+
+private:
+
+	void UpdateEnemyCount();
+
+	static void EnemyDied();
+
 };
